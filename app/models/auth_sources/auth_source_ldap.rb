@@ -27,7 +27,6 @@ class AuthSourceLdap < AuthSource
   include Parameterizable::ByIdName
   include Encryptable
   encrypts :account_password
-  include Taxonomix
 
   validates :host, :presence => true, :length => {:maximum => 60}
   validates :attr_login, :attr_firstname, :attr_lastname, :attr_mail, :presence => true, :if => Proc.new { |auth| auth.onthefly_register? }
