@@ -25,6 +25,7 @@ class Taxonomy < ApplicationRecord
   has_many :hostgroups, :through => :taxable_taxonomies, :source => :taxable, :source_type => 'Hostgroup'
   has_many :environments, :through => :taxable_taxonomies, :source => :taxable, :source_type => 'Environment'
   has_many :subnets, :through => :taxable_taxonomies, :source => :taxable, :source_type => 'Subnet'
+  has_many :auth_sources, :through => :taxable_taxonomies, :source => :taxable, :source_type => 'AuthSource'
 
   validate :check_for_orphans, :unless => Proc.new {|t| t.new_record?}
   validates :name, :presence => true, :uniqueness => {:scope => [:ancestry, :type], :case_sensitive => false}
@@ -148,6 +149,7 @@ class Taxonomy < ApplicationRecord
     new.realms            = realms
     new.media             = media
     new.hostgroups        = hostgroups
+    new.auth_sources      = auth_sources
     new
   end
 
