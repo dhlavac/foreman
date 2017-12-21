@@ -326,7 +326,7 @@ module ApplicationHelper
     # the no-buttons code is needed for users with less permissions
     args = args.flatten.select(&:present?)
     return if args.blank?
-    button_classes = %w(btn btn-default)
+    button_classes = %w(btn btn-default btn-action)
     button_classes << 'btn-primary' if options[:primary]
 
     content_tag(:div, options.merge(:class=>'btn-group')) do
@@ -460,8 +460,9 @@ module ApplicationHelper
     update_url = options[:update_url] || url_for(object)
     type       = options[:type]
     title      = options[:title]
+    select_values     = [true, false].include?(value) ? [_('Yes'), _('No')] : options[:select_values]
 
-    editable(object, property, {:type => type, :title => title, :value => value, :class => klass, :source => options[:select_values],:url => update_url}.compact)
+    editable(object, property, {:type => type, :title => title, :value => value, :class => klass, :source => select_values, :url => update_url}.compact)
   end
 
   def documentation_url(section = "", options = {})

@@ -69,17 +69,17 @@ class Host::Managed < Host::Base
 
   class Jail < ::Safemode::Jail
     allow :name, :diskLayout, :puppetmaster, :puppet_ca_server, :operatingsystem, :os, :environment, :ptable, :hostgroup,
-      :url_for_boot, :params, :info, :hostgroup, :compute_resource, :domain, :ip, :ip6, :mac, :shortname, :architecture,
+      :url_for_boot, :hostgroup, :compute_resource, :domain, :ip, :ip6, :mac, :shortname, :architecture,
       :model, :certname, :capabilities, :provider, :subnet, :subnet6, :token, :location, :organization, :provision_method,
-      :image_build?, :pxe_build?, :otp, :realm, :param_true?, :param_false?, :nil?, :indent, :primary_interface,
+      :image_build?, :pxe_build?, :otp, :realm, :nil?, :indent, :primary_interface,
       :provision_interface, :interfaces, :bond_interfaces, :bridge_interfaces, :interfaces_with_identifier,
       :managed_interfaces, :facts, :facts_hash, :root_pass, :sp_name, :sp_ip, :sp_mac, :sp_subnet, :use_image,
       :multiboot, :jumpstart_path, :install_path, :miniroot, :medium, :bmc_nic, :templates_used, :owner, :owner_type,
       :ssh_authorized_keys, :pxe_loader
   end
 
-  scope :recent,      ->(*args) { where(["last_report > ?", (args.first || (Setting[:puppet_interval] + Setting[:outofsync_interval]).minutes.ago)]) }
-  scope :out_of_sync, ->(*args) { where(["last_report < ? and hosts.enabled != ?", (args.first || (Setting[:puppet_interval] + Setting[:outofsync_interval]).minutes.ago), false]) }
+  scope :recent,      ->(*args) { where(["#{Host.table_name}.last_report > ?", (args.first || (Setting[:puppet_interval] + Setting[:outofsync_interval]).minutes.ago)]) }
+  scope :out_of_sync, ->(*args) { where(["#{Host.table_name}.last_report < ? and hosts.enabled != ?", (args.first || (Setting[:puppet_interval] + Setting[:outofsync_interval]).minutes.ago), false]) }
 
   scope :with_status, lambda { |status_type|
     eager_load(:host_statuses).where("host_status.type = '#{status_type}'")
@@ -484,9 +484,8 @@ class Host::Managed < Host::Base
 
   def apply_inherited_attributes(attributes, initialized = true)
     return nil unless attributes
-    #convert possible strong parameters to unsafe hash (filtering out unsafe items) and
-    #clone to minimize side effects
-    attributes = hash_clone(attributes.to_h).with_indifferent_access
+
+    attributes = hash_clone(attributes).with_indifferent_access
 
     new_hostgroup_id = attributes['hostgroup_id'] || attributes['hostgroup_name'] || attributes['hostgroup'].try(:id)
     #hostgroup didn't change, no inheritance needs update.
@@ -753,6 +752,7 @@ class Host::Managed < Host::Base
   def build_status_label(options = {})
     @build_status_label ||= get_status(HostStatus::BuildStatus).to_label(options)
   end
+
   # rebuilds orchestration configuration for a host
   # takes all the methods from Orchestration modules that are registered for configuration rebuild
   # arguments:
@@ -773,11 +773,6 @@ class Host::Managed < Host::Base
       result[pretty_name] = self.send method
     end
     result
-  end
-
-  def to_ip_address(name_or_ip)
-    Foreman::Deprecation.deprecation_warning('1.17', 'Host::Managed#to_ip_address has been deprecated, you should use NicIpResolver class instead')
-    NicIpResolver.new(:nic => provision_interface).to_ip_address(name_or_ip)
   end
 
   def apply_compute_profile(modification)
@@ -812,7 +807,7 @@ class Host::Managed < Host::Base
     if dups.present?
       dups.last.first.errors.add(:name, :taken)
       self.errors.add :interfaces, _('Some interfaces are invalid')
-      return false
+      throw :abort
     end
   end
 

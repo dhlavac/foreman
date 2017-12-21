@@ -17,6 +17,7 @@
 
 class AuthSource < ApplicationRecord
   include Authorizable
+  scoped_search :on => :name, :complete_value => :true
 
   has_many Taxonomix::TAXONOMY_JOIN_TABLE, :dependent => :destroy, :as => :taxable
   has_many :locations, -> { where(:type => 'Location') },

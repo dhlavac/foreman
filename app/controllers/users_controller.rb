@@ -2,6 +2,7 @@ class UsersController < ApplicationController
   include Foreman::Controller::AutoCompleteSearch
   include Foreman::Controller::UsersMixin
   include Foreman::Controller::Parameters::User
+  include Foreman::Controller::BruteforceProtection
 
   skip_before_action :require_mail, :only => [:edit, :update, :logout]
   skip_before_action :require_login, :authorize, :session_expiry, :update_activity_time, :set_taxonomy, :set_gettext_locale_db, :only => [:login, :logout, :extlogout]
@@ -50,7 +51,7 @@ class UsersController < ApplicationController
     @user = find_resource(:destroy_users)
     if @user == User.current
       warning _("You cannot delete this user while logged in as this user")
-      redirect_to :back
+      redirect_back(fallback_location: users_path)
       return
     end
     if @user.destroy
@@ -64,6 +65,14 @@ class UsersController < ApplicationController
   # Stores the user id in the session and redirects required URL or default homepage
   def login
     User.current = nil
+
+    if bruteforce_attempt?
+      inline_error _("Too many tries, please try again in a few minutes.")
+      log_bruteforce
+      render :layout => 'login', :status => :unauthorized
+      return
+    end
+
     if request.post?
       backup_session_content { reset_session }
       intercept = SSO::FormIntercept.new(self)
@@ -75,6 +84,7 @@ class UsersController < ApplicationController
       if user.nil?
         #failed to authenticate, and/or to generate the account on the fly
         inline_error _("Incorrect username or password")
+        count_login_failure
         redirect_to login_users_path
       else
         #valid user
@@ -148,7 +158,8 @@ class UsersController < ApplicationController
     session[:user]         = user.id
     uri                    = session.to_hash.with_indifferent_access[:original_uri]
     session[:original_uri] = nil
-    store_default_taxonomies(user)
+    store_default_taxonomy(user, 'organization') unless session.has_key?(:organization_id)
+    store_default_taxonomy(user, 'location') unless session.has_key?(:location_id)
     TopbarSweeper.expire_cache
     user.post_successful_login
     redirect_to (uri || hosts_path)

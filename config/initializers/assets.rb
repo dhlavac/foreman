@@ -17,7 +17,6 @@ Foreman::Application.configure do |app|
                   host_edit_interfaces
                   hosts
                   host_checkbox
-                  nfs_visibility
                   noVNC/base64
                   noVNC/des
                   noVNC/display
@@ -70,7 +69,7 @@ Foreman::Application.configure do |app|
         # either with just the plugin name or with hyphens replaced with underscores.
         possible_manifests = [plugin.path, app.root].map do |root_dir|
           [File.join(root_dir, "public/assets/#{plugin.id}/#{plugin.id}.json"),
-           File.join(root_dir, "public/assets/#{plugin.id.to_s.gsub('-', '_')}/#{plugin.id.to_s.gsub('-', '_')}.json")]
+           File.join(root_dir, "public/assets/#{plugin.id.to_s.tr('-', '_')}/#{plugin.id.to_s.tr('-', '_')}.json")]
         end.flatten
 
         if (manifest_path = possible_manifests.detect { |path| File.file?(path) })

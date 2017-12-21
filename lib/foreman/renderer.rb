@@ -15,7 +15,7 @@ module Foreman
                                   :foreman_server_url, :log_debug, :log_info, :log_warn, :log_error, :log_fatal, :template_name, :dns_lookup,
                                   :pxe_kernel_options, :save_to_file, :subnet_param, :subnet_has_param? ]
     ALLOWED_HOST_HELPERS ||= [ :grub_pass, :ks_console, :root_pass,
-                               :media_path, :param_true?, :param_false?, :match,
+                               :media_path, :match,
                                :host_param_true?, :host_param_false?,
                                :host_param, :host_param!, :host_puppet_classes, :host_enc ]
 
@@ -97,7 +97,6 @@ module Foreman
         scope_variables.each { |k,v| instance_variable_set "@#{k}", kept_variables[k] }
         result
       end
-
     rescue ::Racc::ParseError, ::SyntaxError => e
       # Racc::ParseError is raised in safe mode, SyntaxError in unsafe mode
       new_e = Foreman::Renderer::SyntaxError.new(N_("Syntax error occurred while parsing the template %{template_name}, make sure you have all ERB tags properly closed and the Ruby syntax is valid. The Ruby error: %{message}"), :template_name => template_name, :message => e.message)

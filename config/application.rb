@@ -158,9 +158,6 @@ module Foreman
       nil
     end
 
-    # Do not swallow errors in after_commit/after_rollback callbacks.
-    config.active_record.raise_in_transactional_callbacks = true
-
     # Enable the asset pipeline
     config.assets.enabled = true
 
@@ -171,11 +168,7 @@ module Foreman
     config.assets.quiet = true
 
     # Catching Invalid JSON Parse Errors with Rack Middleware
-    if Rails::VERSION::MAJOR == 4
-      config.middleware.insert_before ActionDispatch::ParamsParser, Middleware::CatchJsonParseErrors
-    else
-      config.middleware.use Middleware::CatchJsonParseErrors
-    end
+    config.middleware.use Middleware::CatchJsonParseErrors
 
     # Record request ID in logging MDC storage
     config.middleware.insert_before Rails::Rack::Logger, Middleware::TaggedLogging
@@ -215,7 +208,7 @@ module Foreman
     config.log_level = Foreman::Logging.logger_level('app').to_sym
     config.active_record.logger = Foreman::Logging.logger('sql')
 
-    if config.serve_static_files
+    if config.public_file_server.enabled
       ::Rails::Engine.subclasses.map(&:instance).each do |engine|
         if File.exist?("#{engine.root}/public/assets")
           config.middleware.use ::ActionDispatch::Static, "#{engine.root}/public"

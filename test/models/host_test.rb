@@ -3123,20 +3123,6 @@ class HostTest < ActiveSupport::TestCase
       host = Host.new(:name => "test-host", :hostgroup => hg)
       assert host.environment
     end
-
-    test 'should filter out unpermitted strong parameters' do
-      host = FactoryBot.build(:host, :managed, :with_hostgroup)
-      attributes = ActionController::Parameters.new({ 'unpermitted_attribute' => 1 })
-      actual_attr = host.apply_inherited_attributes(attributes)
-      assert_nil actual_attr['unpermitted_attribute']
-    end
-
-    test 'must not return strong parameters' do
-      host = FactoryBot.build(:host, :managed, :with_hostgroup)
-      attributes = ActionController::Parameters.new
-      actual_attr = host.apply_inherited_attributes(attributes)
-      refute actual_attr.is_a? ActionController::Parameters
-    end
   end
 
   describe 'rendering interface' do
@@ -3322,62 +3308,6 @@ class HostTest < ActiveSupport::TestCase
     host.domain.domain_parameters = [domain_parameter]
     assert_equal(domain_parameter, host.host_params_objects.first, 'with no hostgroup, DomainParameter should be first parameter')
     assert(host.host_params_objects.last.is_a?(CommonParameter), 'CommonParameter should be last parameter')
-  end
-
-  describe '#param_true?' do
-    test 'returns false for unknown parameter' do
-      Foreman::Cast.expects(:to_bool).never
-      refute FactoryBot.build(:host).param_true?('unknown')
-    end
-
-    test 'returns false for parameter with false-like value' do
-      Foreman::Cast.expects(:to_bool).with('0').returns(false)
-      host = FactoryBot.create(:host)
-      FactoryBot.create(:host_parameter, :host => host, :name => 'host_param', :value => '0')
-      refute host.reload.param_true?('host_param')
-    end
-
-    test 'returns true for parameter with true-like value' do
-      Foreman::Cast.expects(:to_bool).with('1').returns(true)
-      host = FactoryBot.create(:host)
-      FactoryBot.create(:host_parameter, :host => host, :name => 'host_param', :value => '1')
-      assert host.reload.param_true?('host_param')
-    end
-
-    test 'uses inherited parameters' do
-      Foreman::Cast.expects(:to_bool).with('1').returns(true)
-      host = FactoryBot.create(:host, :with_hostgroup)
-      FactoryBot.create(:hostgroup_parameter, :hostgroup => host.hostgroup, :name => 'group_param', :value => '1')
-      assert host.reload.param_true?('group_param')
-    end
-  end
-
-  describe '#param_false?' do
-    test 'returns false for unknown parameter' do
-      Foreman::Cast.expects(:to_bool).never
-      refute FactoryBot.build(:host).param_false?('unknown')
-    end
-
-    test 'returns true for parameter with false-like value' do
-      Foreman::Cast.expects(:to_bool).with('0').returns(false)
-      host = FactoryBot.create(:host)
-      FactoryBot.create(:host_parameter, :host => host, :name => 'host_param', :value => '0')
-      assert host.reload.param_false?('host_param')
-    end
-
-    test 'returns false for parameter with true-like value' do
-      Foreman::Cast.expects(:to_bool).with('1').returns(true)
-      host = FactoryBot.create(:host)
-      FactoryBot.create(:host_parameter, :host => host, :name => 'host_param', :value => '1')
-      refute host.reload.param_false?('host_param')
-    end
-
-    test 'uses inherited parameters' do
-      Foreman::Cast.expects(:to_bool).with('0').returns(false)
-      host = FactoryBot.create(:host, :with_hostgroup)
-      FactoryBot.create(:hostgroup_parameter, :hostgroup => host.hostgroup, :name => 'group_param', :value => '0')
-      assert host.reload.param_false?('group_param')
-    end
   end
 
   context 'compute resources' do
